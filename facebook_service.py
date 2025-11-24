@@ -1,5 +1,4 @@
 import requests
-import pandas as pd
 from datetime import datetime, timedelta
 
 BASE_URL = "https://graph.facebook.com/v19.0"
