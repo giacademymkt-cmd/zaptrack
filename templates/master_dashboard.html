@@ -1,0 +1,107 @@
+{% extends "dashboard_base.html" %}
+
+{% block header_title %}Visão Administrativa 🎯{% endblock %}
+
+{% block content %}
+<!-- Overview Cards -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="bg-gradient-to-br from-purple-600 to-purple-800 rounded-xl p-6 text-white">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-purple-200">Lojistas Ativos</span>
+            <span class="text-3xl">👥</span>
+        </div>
+        <p class="text-3xl font-bold">{{ total_lojistas }}</p>
+    </div>
+
+    <div class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl p-6 text-white">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-blue-200">Gestores</span>
+            <span class="text-3xl">👔</span>
+        </div>
+        <p class="text-3xl font-bold">{{ total_gestores }}</p>
+    </div>
+
+    <div class="bg-gradient-to-br from-green-600 to-green-800 rounded-xl p-6 text-white">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-green-200">Total Leads</span>
+            <span class="text-3xl">📊</span>
+        </div>
+        <p class="text-3xl font-bold">{{ total_leads }}</p>
+    </div>
+
+    <div class="bg-gradient-to-br from-orange-600 to-orange-800 rounded-xl p-6 text-white">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-orange-200">Total Vendas</span>
+            <span class="text-3xl">💰</span>
+        </div>
+        <p class="text-3xl font-bold">{{ total_sales }}</p>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+    <div class="p-6 border-b border-gray-700 flex justify-between items-center">
+        <h3 class="text-lg font-semibold text-white">Visão Geral dos Usuários</h3>
+        <a href="{{ url_for('users_list') }}"
+            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium">
+            ➕ Gerenciar Usuários
+        </a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-gray-900/50 text-gray-400 text-xs uppercase">
+                <tr>
+                    <th class="px-6 py-3">Usuário</th>
+                    <th class="px-6 py-3">Função</th>
+                    <th class="px-6 py-3">Status Config</th>
+                    <th class="px-6 py-3">Leads</th>
+                    <th class="px-6 py-3">Vendas</th>
+                    <th class="px-6 py-3">Receita</th>
+                    <th class="px-6 py-3">Última Atividade</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700 text-sm">
+                {% for user in users %}
+                <tr class="hover:bg-gray-700/50 transition-colors">
+                    <td class="px-6 py-4 font-medium text-white">
+                        {{ user.username }}
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold 
+                            {% if user.role == 'GESTOR' %}bg-purple-500/20 text-purple-400
+                            {% else %}bg-blue-500/20 text-blue-400{% endif %}">
+                            {{ user.role }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if user.role == 'LOJISTA' %}
+                        {% if user.has_config %}
+                        <span class="text-green-400">✓ OK</span>
+                        {% else %}
+                        <span class="text-yellow-400">⚠ Pendente</span>
+                        {% endif %}
+                        {% else %}
+                        <span class="text-gray-500">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-gray-300">{{ user.leads_count }}</td>
+                    <td class="px-6 py-4 text-gray-300">{{ user.sales_count }}</td>
+                    <td class="px-6 py-4 text-gray-300">
+                        {% if user.revenue > 0 %}
+                        R$ {{ "%.2f"|format(user.revenue) }}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-gray-400 text-xs">{{ user.last_activity }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="px-6 py-8 text-center text-gray-500">Nenhum usuário encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

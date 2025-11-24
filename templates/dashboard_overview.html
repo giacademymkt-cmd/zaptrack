@@ -1,0 +1,332 @@
+{% extends "dashboard_base.html" %}
+
+{% block header_title %}Visão Geral{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Date Range & Filters -->
+    <div class="flex justify-between items-center bg-gray-800 p-4 rounded-xl border border-gray-700">
+        <div class="flex items-center gap-4">
+            <span class="text-gray-400 text-sm">Período:</span>
+            <select id="datePreset" onchange="updateDateFilter(this.value)"
+                class="bg-gray-900 border border-gray-700 text-white text-sm rounded-lg p-2.5">
+                <option value="today" {% if current_date_preset=='today' %}selected{% endif %}>Hoje</option>
+                <option value="yesterday" {% if current_date_preset=='yesterday' %}selected{% endif %}>Ontem</option>
+                <option value="last_7d" {% if current_date_preset=='last_7d' %}selected{% endif %}>Últimos 7 dias
+                </option>
+                <option value="this_month" {% if current_date_preset=='this_month' %}selected{% endif %}>Este Mês
+                </option>
+                <option value="last_month" {% if current_date_preset=='last_month' %}selected{% endif %}>Mês Passado
+                </option>
+                <option value="maximum" {% if current_date_preset=='maximum' %}selected{% endif %}>Máximo</option>
+            </select>
+        </div>
+        <button onclick="updateDateFilter('maximum')" class="text-gray-400 hover:text-white text-sm">Resetar
+            Filtros</button>
+    </div>
+
+    <!-- KPI Cards Row 1 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- Faturamento -->
+        <div
+            class="bg-gray-800 p-6 rounded-2xl border border-gray-700 relative overflow-hidden group hover:border-gray-600 transition-all">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <span class="text-6xl">💰</span>
+            </div>
+            <div class="text-gray-400 text-sm font-medium mb-2 uppercase tracking-wider">Faturamento (R$)</div>
+            <div class="text-3xl font-bold text-white mb-1">R$ {{ "%.2f"|format(total_revenue) }}</div>
+        </div>
+
+        <!-- Investimento -->
+        <div
+            class="bg-gray-800 p-6 rounded-2xl border border-gray-700 relative overflow-hidden group hover:border-gray-600 transition-all">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <span class="text-6xl">💸</span>
+            </div>
+            <div class="text-gray-400 text-sm font-medium mb-2 uppercase tracking-wider">Investimento Total</div>
+            <div class="text-3xl font-bold text-white mb-1">R$ {{ "%.2f"|format(ad_spend) }}</div>
+        </div>
+
+        <!-- Lucro -->
+        <div
+            class="bg-gradient-to-br from-purple-900 to-gray-900 p-6 rounded-2xl border border-purple-700/50 relative overflow-hidden group hover:border-purple-500/50 transition-all">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <span class="text-6xl">🚀</span>
+            </div>
+            <div class="text-purple-300 text-sm font-medium mb-2 uppercase tracking-wider">Lucro (R$)</div>
+            <div class="text-3xl font-bold text-white mb-1">R$ {{ "%.2f"|format(total_revenue - ad_spend) }}</div>
+            <div class="text-xs text-purple-300 flex items-center gap-1">
+                <span>Margem: {{ "%.1f"|format(((total_revenue - ad_spend) / total_revenue * 100) if total_revenue > 0
+                    else 0) }}%</span>
+            </div>
+        </div>
+
+        <!-- ROAS -->
+        <div
+            class="bg-gray-800 p-6 rounded-2xl border border-gray-700 relative overflow-hidden group hover:border-gray-600 transition-all flex flex-col justify-center items-center">
+            <div class="relative w-24 h-24">
+                <svg class="w-full h-full" viewBox="0 0 36 36">
+                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
+                        stroke="#374151" stroke-width="3" />
+                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831" fill="none" stroke="#8B5CF6" stroke-width="3"
+                        stroke-dasharray="{{ (roas * 10) if roas < 10 else 100 }}, 100" />
+                </svg>
+                <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+                    <div class="text-xl font-bold text-white">{{ "%.2f"|format(roas) }}</div>
+                    <div class="text-[10px] text-gray-400">ROAS</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Sales Funnel -->
+        <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 lg:col-span-1">
+            <h3 class="text-lg font-semibold text-white mb-6">Funil de Vendas</h3>
+            <div class="space-y-4">
+                <!-- Impressions -->
+                <div class="relative pt-1">
+                    <div class="flex mb-2 items-center justify-between">
+                        <div>
+                            <span
+                                class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-blue-600 bg-blue-200">
+                                Impressões
+                            </span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-semibold inline-block text-blue-600">
+                                {{ impressions }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-200/20">
+                        <div style="width:100%"
+                            class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Clicks -->
+                <div class="relative pt-1">
+                    <div class="flex mb-2 items-center justify-between">
+                        <div>
+                            <span
+                                class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-teal-600 bg-teal-200">
+                                Cliques no Link
+                            </span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-semibold inline-block text-teal-600">
+                                {{ clicks }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-teal-200/20">
+                        <div style="width: {{ (clicks / impressions * 100 * 20) if impressions > 0 else 0 }}%"
+                            class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-teal-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leads -->
+                <div class="relative pt-1">
+                    <div class="flex mb-2 items-center justify-between">
+                        <div>
+                            <span
+                                class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-orange-600 bg-orange-200">
+                                Leads Gerados
+                            </span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-semibold inline-block text-orange-600">
+                                {{ total_leads }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-orange-200/20">
+                        <div style="width: {{ (total_leads / clicks * 100) if clicks > 0 else 0 }}%"
+                            class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-orange-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sales -->
+                <div class="relative pt-1">
+                    <div class="flex mb-2 items-center justify-between">
+                        <div>
+                            <span
+                                class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-green-600 bg-green-200">
+                                Vendas
+                            </span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-semibold inline-block text-green-600">
+                                {{ total_sales }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-green-200/20">
+                        <div style="width: {{ (total_sales / total_leads * 100) if total_leads > 0 else 0 }}%"
+                            class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-green-500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Demographics (Age/Gender) -->
+        <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 lg:col-span-1">
+            <h3 class="text-lg font-semibold text-white mb-4">Idade & Gênero</h3>
+            <canvas id="demographicsChart"></canvas>
+        </div>
+
+        <!-- Platform Breakdown -->
+        <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 lg:col-span-1">
+            <h3 class="text-lg font-semibold text-white mb-4">Plataforma</h3>
+            <canvas id="platformChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Cities Breakdown -->
+    <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700">
+        <h3 class="text-lg font-semibold text-white mb-4">Principais Cidades</h3>
+        <div class="h-64">
+            <canvas id="citiesChart"></canvas>
+        </div>
+    </div>
+
+    <!-- KPI List -->
+    <div
+        class="bg-gray-800 p-6 rounded-2xl border border-gray-700 lg:col-span-1 flex flex-col justify-center space-y-6">
+        <div class="flex justify-between items-center border-b border-gray-700 pb-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-blue-500/20 rounded-lg text-blue-400">🖱️</div>
+                <div>
+                    <div class="text-sm text-gray-400">Custo por Clique (CPC)</div>
+                    <div class="text-xl font-bold text-white">R$ {{ "%.2f"|format(cpc) }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="flex justify-between items-center border-b border-gray-700 pb-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-purple-500/20 rounded-lg text-purple-400">🎯</div>
+                <div>
+                    <div class="text-sm text-gray-400">Taxa de Cliques (CTR)</div>
+                    <div class="text-xl font-bold text-white">{{ "%.2f"|format(ctr) }}%</div>
+                </div>
+            </div>
+        </div>
+        <div class="flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-green-500/20 rounded-lg text-green-400">💵</div>
+                <div>
+                    <div class="text-sm text-gray-400">Ticket Médio</div>
+                    <div class="text-xl font-bold text-white">R$ {{ "%.2f"|format(total_revenue / total_sales if
+                        total_sales > 0 else 0) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    function updateDateFilter(preset) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('date_preset', preset);
+        window.location.href = url.toString();
+    }
+
+    // Process Breakdown Data from Backend
+    const breakdownData = {{ breakdown_data | tojson }};
+
+    // 1. Age & Gender Chart
+    const ageGenderData = breakdownData.age_gender || [];
+    // Aggregate by Age Group
+    const ageGroups = {};
+    ageGenderData.forEach(item => {
+        const age = item.age;
+        const imps = parseInt(item.impressions || 0);
+        ageGroups[age] = (ageGroups[age] || 0) + imps;
+    });
+
+    const ageLabels = Object.keys(ageGroups).sort();
+    const ageValues = ageLabels.map(label => ageGroups[label]);
+
+    new Chart(document.getElementById('demographicsChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ageLabels.length ? ageLabels : ['Sem dados'],
+            datasets: [{
+                label: 'Impressões',
+                data: ageValues.length ? ageValues : [0],
+                backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, grid: { color: '#374151' } }, x: { grid: { display: false } } }
+        }
+    });
+
+    // 2. Platform Chart
+    const platformData = breakdownData.platform || [];
+    const platforms = {};
+    platformData.forEach(item => {
+        const plat = item.publisher_platform;
+        const imps = parseInt(item.impressions || 0);
+        platforms[plat] = (platforms[plat] || 0) + imps;
+    });
+
+    new Chart(document.getElementById('platformChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(platforms).length ? Object.keys(platforms) : ['Sem dados'],
+            datasets: [{
+                data: Object.values(platforms).length ? Object.values(platforms) : [1],
+                backgroundColor: [
+                    '#1877F2', // Facebook Blue
+                    '#E1306C', // Instagram Pink
+                    '#333333', // Audience Network
+                    '#0088CC'  // Messenger
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#9CA3AF' } }
+            }
+        }
+    });
+
+    // 3. Cities Chart
+    const regionData = breakdownData.region || [];
+    // Sort by impressions desc and take top 10
+    regionData.sort((a, b) => parseInt(b.impressions) - parseInt(a.impressions));
+    const topRegions = regionData.slice(0, 10);
+
+    new Chart(document.getElementById('citiesChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: topRegions.map(r => r.region),
+            datasets: [{
+                label: 'Impressões',
+                data: topRegions.map(r => r.impressions),
+                backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, grid: { color: '#374151' } }, x: { grid: { display: false } } }
+        }
+    });
+</script>
+{% endblock %}

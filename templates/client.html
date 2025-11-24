@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex-1 flex flex-col p-4 max-w-md mx-auto w-full">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-xl font-bold">ZAP TRACK ⚡</h1>
+        <div class="text-sm text-gray-500">Lojista</div>
+    </div>
+
+    <!-- Leads List -->
+    {% for lead in leads %}
+    <div class="bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-700 mb-6 relative overflow-hidden">
+        <div
+            class="absolute top-0 left-0 w-1 h-full {% if lead.status == 'SOLD' %}bg-green-500{% elif lead.status == 'HOT' %}bg-orange-500{% else %}bg-blue-500{% endif %}">
+        </div>
+        <div class="flex justify-between items-start mb-2">
+            <div>
+                <div class="text-gray-400 text-sm mb-1">Lead #{{ lead.short_id }}</div>
+                <div class="text-xs text-gray-500">{{ lead.timestamp.strftime('%d/%m %H:%M') }}</div>
+            </div>
+            <span class="px-2 py-1 rounded text-xs font-bold 
+                {% if lead.status == 'SOLD' %}bg-green-500/20 text-green-400
+                {% elif lead.status == 'HOT' %}bg-orange-500/20 text-orange-400
+                {% elif lead.status == 'ARCHIVED' %}bg-gray-700 text-gray-400
+                {% else %}bg-blue-500/20 text-blue-400{% endif %}">
+                {{ lead.status }}
+            </span>
+        </div>
+
+        {% if lead.status not in ['SOLD', 'ARCHIVED'] %}
+        <!-- Actions -->
+        <div class="grid grid-cols-2 gap-4 mb-4 mt-4">
+            <button onclick="markStatus({{ lead.short_id }}, 'HOT')"
+                class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white p-3 rounded-xl font-semibold transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
+                <span class="text-xl">🔥</span>
+                <span class="text-sm">Quente</span>
+            </button>
+            <button onclick="markStatus({{ lead.short_id }}, 'ARCHIVED')"
+                class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-400 p-3 rounded-xl font-semibold transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
+                <span class="text-xl">❌</span>
+                <span class="text-sm">Arquivar</span>
+            </button>
+        </div>
+
+        <button onclick="showSaleModal({{ lead.short_id }})"
+            class="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold p-4 rounded-xl shadow-lg shadow-green-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-2">
+            <span class="text-xl">💰</span>
+            <span>CONFIRMAR VENDA</span>
+        </button>
+        {% endif %}
+
+        {% if lead.sale_value %}
+        <div class="mt-4 pt-4 border-t border-gray-700 text-center">
+            <div class="text-gray-400 text-xs uppercase">Valor da Venda</div>
+            <div class="text-xl font-bold text-green-400">R$ {{ "%.2f"|format(lead.sale_value) }}</div>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="text-center py-12 text-gray-500">
+        <div class="text-4xl mb-4">📭</div>
+        <p>Nenhum lead pendente.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Sale Modal -->
+<div id="saleModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-gray-800 rounded-2xl p-6 w-full max-w-sm border border-gray-700">
+        <h3 class="text-xl font-bold mb-4 text-center">Valor da Venda</h3>
+        <input type="hidden" id="currentLeadId">
+        <div class="relative mb-6">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg">R$</span>
+            <input type="number" id="saleValue"
+                class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 pl-12 py-4 text-2xl text-white focus:outline-none focus:border-green-500 text-center"
+                placeholder="0.00" step="0.01">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+            <button onclick="hideSaleModal()"
+                class="bg-gray-700 text-white p-3 rounded-xl font-semibold">Cancelar</button>
+            <button onclick="confirmSale()" class="bg-green-500 text-white p-3 rounded-xl font-bold">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentLeadId = null;
+
+    function showSaleModal(leadId) {
+        currentLeadId = leadId;
+        document.getElementById('saleModal').classList.remove('hidden');
+        document.getElementById('saleModal').classList.add('flex');
+    }
+
+    function hideSaleModal() {
+        currentLeadId = null;
+        document.getElementById('saleModal').classList.add('hidden');
+        document.getElementById('saleModal').classList.remove('flex');
+        document.getElementById('saleValue').value = '';
+    }
+
+    async function markStatus(shortId, status, value = null) {
+        try {
+            const response = await fetch('/api/update_status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    short_id: shortId,
+                    status: status,
+                    value: value
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                location.reload();
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Erro ao atualizar status');
+        }
+    }
+
+    function confirmSale() {
+        const value = parseFloat(document.getElementById('saleValue').value);
+        if (!value) return;
+
+        markStatus(currentLeadId, 'SOLD', value);
+        hideSaleModal();
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "dashboard_base.html" %}
+
+{% block header_title %}Campanhas{% endblock %}
+
+{% block content %}
+<div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-gray-900/50 text-gray-400 text-xs uppercase">
+                <tr>
+                    <th class="px-6 py-3">Nome</th>
+                    <th class="px-6 py-3">Status</th>
+                    <th class="px-6 py-3">Objetivo</th>
+                    <th class="px-6 py-3 text-right">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700 text-sm">
+                {% for campaign in campaigns %}
+                <tr class="hover:bg-gray-700/50 transition-colors group cursor-pointer"
+                    onclick="window.location='{{ url_for('adsets', campaign_id=campaign.id) }}'">
+                    <td class="px-6 py-4 font-medium text-white">{{ campaign.name }}</td>
+                    <td class="px-6 py-4">
+                        <span
+                            class="px-2 py-1 rounded text-xs font-bold {{ 'bg-green-500/20 text-green-400' if campaign.status == 'ACTIVE' else 'bg-gray-600/20 text-gray-400' }}">
+                            {{ campaign.status }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-gray-400">{{ campaign.objective }}</td>
+                    <td class="px-6 py-4 text-right">
+                        <span class="text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">Ver Conjuntos
+                            →</span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="px-6 py-8 text-center text-gray-500">Nenhuma campanha encontrada.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

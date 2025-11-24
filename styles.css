@@ -1,0 +1,93 @@
+/* Global Dark Mode Reset */
+.stApp {
+    background-color: #0E1117;
+    color: #FAFAFA;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Hide Streamlit Branding */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+
+/* Custom Cards */
+.css-1r6slb0, .css-12w0qpk {
+    background-color: #262730;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #30333F;
+}
+
+/* Metric Cards (Big Numbers) */
+div[data-testid="stMetric"] {
+    background-color: #262730;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #30333F;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    text-align: center;
+}
+
+div[data-testid="stMetricLabel"] {
+    color: #9CA3AF;
+    font-size: 0.9rem;
+}
+
+div[data-testid="stMetricValue"] {
+    color: #FAFAFA;
+    font-weight: 700;
+}
+
+/* Dataframe / Tables */
+div[data-testid="stDataFrame"] {
+    border: none;
+}
+
+.stDataFrame table {
+    background-color: #262730 !important;
+    color: #FAFAFA !important;
+}
+
+/* Buttons */
+.stButton button {
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+/* Primary Action Button (Green) */
+button[kind="primary"] {
+    background-color: #25D366 !important;
+    border-color: #25D366 !important;
+    color: #FFFFFF !important;
+}
+
+/* Secondary Action Button (Purple/Meta) */
+button[kind="secondary"] {
+    background-color: #7D55C7 !important;
+    border-color: #7D55C7 !important;
+    color: #FFFFFF !important;
+}
+
+/* Lead Card Custom Class (used in client_view) */
+.lead-card {
+    background-color: #262730;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    border-left: 5px solid #25D366;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.lead-card h3 {
+    margin: 0;
+    color: #FAFAFA;
+    font-size: 1.2rem;
+}
+
+.lead-card p {
+    margin: 5px 0 0 0;
+    color: #9CA3AF;
+    font-size: 0.9rem;
+}

@@ -1,0 +1,200 @@
+{% extends "dashboard_base.html" %}
+
+{% block header_title %}Gestão de Usuários 👥{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- User List -->
+    <div class="lg:col-span-2">
+        <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+            <div class="p-6 border-b border-gray-700">
+                <h3 class="text-lg font-semibold text-white">Usuários Cadastrados</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-900/50 text-gray-400 text-xs uppercase">
+                        <tr>
+                            <th class="px-6 py-3">Usuário</th>
+                            <th class="px-6 py-3">Função</th>
+                            <th class="px-6 py-3">Status</th>
+                            <th class="px-6 py-3">Leads</th>
+                            <th class="px-6 py-3">Vendas</th>
+                            {% if current_user.role == 'MASTER' %}
+                            <th class="px-6 py-3 text-right">Ações</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700 text-sm">
+                        {% for user in users %}
+                        <tr class="hover:bg-gray-700/50 transition-colors">
+                            <td class="px-6 py-4 font-medium text-white">{{ user.username }}</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 rounded text-xs font-bold 
+                                    {% if user.role == 'MASTER' %}bg-red-500/20 text-red-400
+                                    {% elif user.role == 'GESTOR' %}bg-purple-500/20 text-purple-400
+                                    {% else %}bg-blue-500/20 text-blue-400{% endif %}">
+                                    {{ user.role }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if user.has_config %}
+                                <span class="text-green-400">✓ Configurado</span>
+                                {% else %}
+                                <span class="text-yellow-400">⚠ Pendente</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-gray-400">{{ user.leads_count }}</td>
+                            <td class="px-6 py-4 text-gray-400">{{ user.sales_count }}</td>
+                            {% if current_user.role == 'MASTER' %}
+                            <td class="px-6 py-4 text-right space-x-2">
+                                <button onclick="openEditModal({{ user.id }}, '{{ user.username }}')"
+                                    class="text-blue-400 hover:text-blue-300 transition-colors">
+                                    ✏️ Editar
+                                </button>
+                                <button onclick="deleteUser({{ user.id }}, '{{ user.username }}')"
+                                    class="text-red-400 hover:text-red-300 transition-colors">
+                                    🗑️ Deletar
+                                </button>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-8 text-center text-gray-500">Nenhum usuário encontrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create User Form -->
+    <div class="lg:col-span-1">
+        <div class="bg-gray-800 rounded-xl border border-gray-700 p-6 sticky top-6">
+            <h3 class="text-lg font-semibold mb-6 text-white">Novo Usuário</h3>
+            <form action="{{ url_for('users_list') }}" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1">Nome de Usuário</label>
+                    <input type="text" name="username" required
+                        class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1">Senha</label>
+                    <input type="password" name="password" required
+                        class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1">Função</label>
+                    <select name="role"
+                        class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                        {% if current_user.role == 'MASTER' %}
+                        <option value="GESTOR">Gestor</option>
+                        {% endif %}
+                        <option value="LOJISTA">Lojista</option>
+                    </select>
+                </div>
+                <button type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg transition-colors mt-4">
+                    Criar Usuário
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+    <div class="bg-gray-800 rounded-xl border border-gray-700 p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-semibold text-white mb-4">Editar Usuário</h3>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Nome de Usuário</label>
+                <input type="text" id="editUsername"
+                    class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Nova Senha (deixe vazio para manter)</label>
+                <input type="password" id="editPassword"
+                    class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeEditModal()"
+                    class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded-lg transition-colors">
+                    Cancelar
+                </button>
+                <button onclick="saveEdit()"
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg transition-colors">
+                    Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let editingUserId = null;
+
+    function openEditModal(userId, username) {
+        editingUserId = userId;
+        document.getElementById('editUsername').value = username;
+        document.getElementById('editPassword').value = '';
+        document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.add('hidden');
+        editingUserId = null;
+    }
+
+    async function saveEdit() {
+        const username = document.getElementById('editUsername').value;
+        const password = document.getElementById('editPassword').value;
+
+        const data = { username };
+        if (password) data.password = password;
+
+        try {
+            const response = await fetch(`/admin/users/${editingUserId}/edit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('✅ ' + result.message);
+                window.location.reload();
+            } else {
+                alert('❌ ' + result.error);
+            }
+        } catch (e) {
+            alert('❌ Erro ao salvar');
+        }
+    }
+
+    async function deleteUser(userId, username) {
+        if (!confirm(`Tem certeza que deseja deletar o usuário "${username}"?\n\nIsso removerá todos os dados relacionados.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/admin/users/${userId}/delete`, {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('✅ ' + result.message);
+                window.location.reload();
+            } else {
+                alert('❌ ' + result.error);
+            }
+        } catch (e) {
+            alert('❌ Erro ao deletar');
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: agencyos
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && python init_db.py
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agencyos-db
+          property: connectionString
+    autoDeploy: true
+    
+databases:
+  - name: agencyos-db
+    databaseName: agencyos
+    plan: free

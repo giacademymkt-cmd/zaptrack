@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgencyOS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-gray-100 flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
+        <!-- Brand -->
+        <div class="p-6 border-b border-gray-700">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <span>⚡</span> AgencyOS
+            </h1>
+        </div>
+
+        <!-- Client Selector -->
+        <div class="p-4 border-b border-gray-700">
+            <label class="text-xs text-gray-400 uppercase font-semibold mb-2 block">Cliente Ativo</label>
+            <div class="relative">
+                <button
+                    class="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 text-left text-sm flex justify-between items-center hover:border-gray-500 transition-colors"
+                    onclick="document.getElementById('clientDropdown').classList.toggle('hidden')">
+                    <span class="truncate">
+                        {% if active_client %}
+                        {{ active_client.username }}
+                        {% else %}
+                        Selecione...
+                        {% endif %}
+                    </span>
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                <!-- Dropdown -->
+                <div id="clientDropdown"
+                    class="hidden absolute top-full left-0 w-full bg-gray-800 border border-gray-600 rounded-lg mt-1 shadow-xl z-50 max-h-60 overflow-y-auto">
+                    {% for client in clients %}
+                    <a href="{{ url_for('select_client', user_id=client.id) }}"
+                        class="block px-4 py-2 text-sm hover:bg-gray-700 transition-colors">
+                        {{ client.username }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+            <a href="{{ url_for('dashboard') }}"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors {% if request.endpoint == 'dashboard' %}bg-gray-700 text-white{% else %}text-gray-400{% endif %}">
+                <span>📊</span> Dashboard
+            </a>
+            <a href="{{ url_for('campaigns') }}"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors {% if 'campaign' in request.endpoint %}bg-gray-700 text-white{% else %}text-gray-400{% endif %}">
+                <span>📢</span> Campanhas
+            </a>
+            <a href="{{ url_for('ai_lab') }}"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors {% if request.endpoint == 'ai_lab' %}bg-gray-700 text-white{% else %}text-gray-400{% endif %}">
+                <span>🧠</span> AI Lab
+            </a>
+            {% if current_user.role in ['MASTER', 'GESTOR'] %}
+            <a href="{{ url_for('clients_list') }}"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors {% if request.endpoint == 'clients_list' %}bg-gray-700 text-white{% else %}text-gray-400{% endif %}">
+                <span>💼</span> Meus Clientes
+            </a>
+            <a href="{{ url_for('link_generator') }}"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors {% if request.endpoint == 'link_generator' %}bg-gray-700 text-white{% else %}text-gray-400{% endif %}">
+                <span>🔗</span> Gerador de Links
+            </a>
+            <a href="{{ url_for('users_list') }}"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors {% if request.endpoint == 'users_list' %}bg-gray-700 text-white{% else %}text-gray-400{% endif %}">
+                <span>👥</span> Usuários
+            </a>
+            {% endif %}
+        </nav>
+
+        <!-- User Profile -->
+        <div class="p-4 border-t border-gray-700">
+            <div class="flex items-center gap-3 mb-3">
+                <div
+                    class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-xs">
+                    {{ current_user.username[:2].upper() }}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium truncate">{{ current_user.username }}</div>
+                    <div class="text-xs text-gray-500 truncate">{{ current_user.role }}</div>
+                </div>
+            </div>
+            <a href="{{ url_for('logout') }}"
+                class="block w-full text-center text-xs text-red-400 hover:text-red-300 py-2 hover:bg-red-500/10 rounded transition-colors">
+                Sair
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <header class="h-16 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-8">
+            <h2 class="text-lg font-semibold text-gray-200">
+                {% block header_title %}Dashboard{% endblock %}
+            </h2>
+            <div class="flex items-center gap-4">
+                <!-- Top Actions -->
+                {% block header_actions %}{% endblock %}
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div
+                class="mb-6 p-4 rounded-lg {% if category == 'error' %}bg-red-500/10 text-red-400 border border-red-500/50{% else %}bg-green-500/10 text-green-400 border border-green-500/50{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+</body>
+
+</html>

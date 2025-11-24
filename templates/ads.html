@@ -1,0 +1,67 @@
+{% extends "dashboard_base.html" %}
+
+{% block header_title %}Anúncios{% endblock %}
+
+{% block header_actions %}
+<button onclick="history.back()" class="text-sm text-gray-400 hover:text-white flex items-center gap-1">
+    ⬅ Voltar
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-gray-900/50 text-gray-400 text-xs uppercase">
+                <tr>
+                    <th class="px-6 py-3">Nome</th>
+                    <th class="px-6 py-3">Status</th>
+                    <th class="px-6 py-3">Criativo</th>
+                    <th class="px-6 py-3 text-right">Impressões</th>
+                    <th class="px-6 py-3 text-right">Cliques</th>
+                    <th class="px-6 py-3 text-right">CTR</th>
+                    <th class="px-6 py-3 text-right">CPC</th>
+                    <th class="px-6 py-3 text-right">Gasto</th>
+                    <th class="px-6 py-3 text-right">ROAS</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700 text-sm">
+                {% for ad in ads %}
+                <tr class="hover:bg-gray-700/50 transition-colors">
+                    <td class="px-6 py-4 font-medium text-white">{{ ad.name }}</td>
+                    <td class="px-6 py-4">
+                        <span
+                            class="px-2 py-1 rounded text-xs font-bold {{ 'bg-green-500/20 text-green-400' if ad.status == 'ACTIVE' else 'bg-gray-600/20 text-gray-400' }}">
+                            {{ ad.status }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-gray-400">
+                        {% if ad.creative %}
+                        <div class="flex items-center gap-3">
+                            {% if ad.creative.thumbnail_url %}
+                            <img src="{{ ad.creative.thumbnail_url }}" class="h-10 w-10 object-cover rounded">
+                            {% endif %}
+                            <span class="truncate max-w-[150px]" title="{{ ad.creative.name }}">{{ ad.creative.name
+                                }}</span>
+                        </div>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-right text-gray-300">{{ ad.impressions }}</td>
+                    <td class="px-6 py-4 text-right text-gray-300">{{ ad.clicks }}</td>
+                    <td class="px-6 py-4 text-right text-blue-400">{{ "%.2f"|format(ad.ctr) }}%</td>
+                    <td class="px-6 py-4 text-right text-gray-300">R$ {{ "%.2f"|format(ad.cpc) }}</td>
+                    <td class="px-6 py-4 text-right text-white font-medium">R$ {{ "%.2f"|format(ad.spend) }}</td>
+                    <td class="px-6 py-4 text-right text-purple-400 font-bold">{{ "%.2f"|format(ad.roas) }}x</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="px-6 py-8 text-center text-gray-500">Nenhum anúncio encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

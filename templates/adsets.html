@@ -1,0 +1,55 @@
+{% extends "dashboard_base.html" %}
+
+{% block header_title %}Conjuntos de Anúncios{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('campaigns') }}" class="text-sm text-gray-400 hover:text-white flex items-center gap-1">
+    ⬅ Voltar para Campanhas
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-gray-900/50 text-gray-400 text-xs uppercase">
+                <tr>
+                    <th class="px-6 py-3">Nome</th>
+                    <th class="px-6 py-3">Status</th>
+                    <th class="px-6 py-3">Orçamento Diário</th>
+                    <th class="px-6 py-3 text-right">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700 text-sm">
+                {% for adset in adsets %}
+                <tr class="hover:bg-gray-700/50 transition-colors group cursor-pointer"
+                    onclick="window.location='{{ url_for('ads', adset_id=adset.id) }}'">
+                    <td class="px-6 py-4 font-medium text-white">{{ adset.name }}</td>
+                    <td class="px-6 py-4">
+                        <span
+                            class="px-2 py-1 rounded text-xs font-bold {{ 'bg-green-500/20 text-green-400' if adset.status == 'ACTIVE' else 'bg-gray-600/20 text-gray-400' }}">
+                            {{ adset.status }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-gray-400">
+                        {% if adset.daily_budget %}
+                        R$ {{ "%.2f"|format(adset.daily_budget|float / 100) }}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <span class="text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">Ver Anúncios
+                            →</span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="px-6 py-8 text-center text-gray-500">Nenhum conjunto encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

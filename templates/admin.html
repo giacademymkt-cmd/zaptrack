@@ -1,0 +1,115 @@
+{% extends "dashboard_base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+
+    <!-- Metrics Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <!-- Metric Card -->
+        <div class="bg-gray-800 p-5 rounded-xl border border-gray-700">
+            <div class="text-gray-400 text-sm mb-1">Leads Totais</div>
+            <div class="text-2xl font-bold text-white">{{ total_leads }}</div>
+        </div>
+        <div class="bg-gray-800 p-5 rounded-xl border border-gray-700">
+            <div class="text-gray-400 text-sm mb-1">Vendas</div>
+            <div class="text-2xl font-bold text-green-400">{{ total_sales }}</div>
+        </div>
+        <div class="bg-gray-800 p-5 rounded-xl border border-gray-700">
+            <div class="text-gray-400 text-sm mb-1">Receita</div>
+            <div class="text-2xl font-bold text-white">R$ {{ "%.2f"|format(total_revenue) }}</div>
+        </div>
+        <div class="bg-gray-800 p-5 rounded-xl border border-gray-700">
+            <div class="text-gray-400 text-sm mb-1">ROAS</div>
+            <div class="text-2xl font-bold text-purple-400">{{ "%.2f"|format(roas) }}x</div>
+        </div>
+    </div>
+
+    <!-- Link Generator -->
+    <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 mb-8">
+        <h2 class="text-lg font-semibold mb-4">Gerador de Links</h2>
+        <form id="linkForm" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">WhatsApp (Apenas números)</label>
+                    <input type="text" id="phone"
+                        class="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white"
+                        placeholder="5511999999999" value="55">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Mensagem Padrão</label>
+                    <input type="text" id="message"
+                        class="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white"
+                        value="Olá, vi a promoção!">
+                </div>
+            </div>
+            <button type="button" onclick="generateLink()"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                Gerar Link
+            </button>
+        </form>
+        <div id="resultArea"
+            class="hidden mt-4 p-4 bg-gray-900 rounded border border-gray-700 font-mono text-sm text-green-400 break-all">
+        </div>
+    </div>
+
+    <!-- Leads Table -->
+    <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+        <div class="p-6 border-b border-gray-700">
+            <h2 class="text-lg font-semibold">Últimos Leads</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-gray-900/50 text-gray-400 text-xs uppercase">
+                    <tr>
+                        <th class="px-6 py-3">ID</th>
+                        <th class="px-6 py-3">Data</th>
+                        <th class="px-6 py-3">Status</th>
+                        <th class="px-6 py-3">Valor</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-700 text-sm">
+                    {% for lead in leads %}
+                    <tr class="hover:bg-gray-700/50 transition-colors">
+                        <td class="px-6 py-4 font-mono text-gray-500">#{{ lead.short_id }}</td>
+                        <td class="px-6 py-4">{{ lead.timestamp }}</td>
+                        <td class="px-6 py-4">
+                            {% if lead.status == 'SOLD' %}
+                            <span
+                                class="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs font-bold">VENDA</span>
+                            {% elif lead.status == 'HOT' %}
+                            <span
+                                class="bg-orange-500/20 text-orange-400 px-2 py-1 rounded text-xs font-bold">QUENTE</span>
+                            {% elif lead.status == 'ARCHIVED' %}
+                            <span class="bg-gray-700 text-gray-400 px-2 py-1 rounded text-xs">ARQUIVADO</span>
+                            {% else %}
+                            <span class="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-xs">NOVO</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-white font-medium">
+                            {% if lead.sale_value %}
+                            R$ {{ "%.2f"|format(lead.sale_value) }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function generateLink() {
+        const phone = document.getElementById('phone').value;
+        const msg = encodeURIComponent(document.getElementById('message').value);
+        const baseUrl = window.location.origin;
+        const link = `${baseUrl}/middleware?phone=${phone}&text=${msg}`;
+
+        const result = document.getElementById('resultArea');
+        result.textContent = link;
+        result.classList.remove('hidden');
+    }
+</script>
+{% endblock %}

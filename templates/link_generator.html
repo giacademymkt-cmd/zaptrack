@@ -1,0 +1,83 @@
+{% extends "dashboard_base.html" %}
+
+{% block header_title %}Gerador de Links{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-gray-800 p-8 rounded-2xl border border-gray-700 shadow-xl">
+        <div class="flex items-center gap-4 mb-6">
+            <div class="p-3 bg-green-500/10 rounded-xl">
+                <span class="text-3xl">🔗</span>
+            </div>
+            <div>
+                <h2 class="text-xl font-bold text-white">Gerador de Links WhatsApp</h2>
+                <p class="text-gray-400 text-sm">Crie links rastreáveis para suas campanhas</p>
+            </div>
+        </div>
+
+        <form id="linkForm" class="space-y-6">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">WhatsApp (Apenas números)</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">📞</span>
+                        <input type="text" id="phone"
+                            class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 pl-12 py-3 text-white focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all"
+                            placeholder="5511999999999" value="55">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Mensagem Padrão</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">💬</span>
+                        <input type="text" id="message"
+                            class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 pl-12 py-3 text-white focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all"
+                            value="Olá, vi a promoção!">
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" onclick="generateLink()"
+                class="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-green-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-2">
+                <span>Gerar Link Rastreado</span>
+                <span>✨</span>
+            </button>
+        </form>
+
+        <div id="resultArea" class="hidden mt-8 animate-fade-in">
+            <label class="block text-sm font-medium text-gray-300 mb-2">Seu Link Gerado:</label>
+            <div
+                class="bg-gray-900 p-4 rounded-xl border border-gray-700 flex items-center justify-between gap-4 group">
+                <code class="font-mono text-sm text-green-400 break-all" id="linkText"></code>
+                <button onclick="copyLink()"
+                    class="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white transition-colors"
+                    title="Copiar">
+                    📋
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function generateLink() {
+        const phone = document.getElementById('phone').value;
+        const msg = encodeURIComponent(document.getElementById('message').value);
+        const baseUrl = window.location.origin;
+        const link = `${baseUrl}/middleware?phone=${phone}&text=${msg}`;
+
+        const resultArea = document.getElementById('resultArea');
+        const linkText = document.getElementById('linkText');
+
+        linkText.textContent = link;
+        resultArea.classList.remove('hidden');
+    }
+
+    function copyLink() {
+        const linkText = document.getElementById('linkText').textContent;
+        navigator.clipboard.writeText(linkText).then(() => {
+            alert('Link copiado!');
+        });
+    }
+</script>
+{% endblock %}

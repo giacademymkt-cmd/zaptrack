@@ -1,0 +1,316 @@
+{% extends "dashboard_base.html" %}
+
+{% block header_title %}Laboratório de IA 🧠{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+
+    {% if not active_client %}
+    <div class="text-center py-12">
+        <h3 class="text-xl text-gray-400">Selecione um cliente na barra lateral para carregar os anúncios.</h3>
+    </div>
+    {% else %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Ad Selection Column -->
+        <div class="lg:col-span-1 h-[calc(100vh-12rem)] overflow-y-auto pr-2 custom-scrollbar">
+            <h3 class="text-lg font-semibold mb-4 text-white sticky top-0 bg-gray-900 py-2 z-10">1. Selecione um Anúncio
+            </h3>
+            <div class="space-y-4">
+                {% for ad in ads %}
+                <div class="ad-card bg-gray-800 rounded-xl border border-gray-700 p-3 cursor-pointer hover:border-purple-500 transition-all group relative overflow-hidden"
+                    data-ad-id="{{ ad.id }}" data-ad-name="{{ ad.name }}" data-ad-title="{{ ad.title }}"
+                    data-ad-body="{{ ad.body }}" data-ad-image="{{ ad.image_url }}" onclick="selectAdFromElement(this)">
+                    <div
+                        class="absolute top-0 left-0 w-1 h-full {% if ad.status == 'ACTIVE' %}bg-green-500{% else %}bg-gray-600{% endif %}">
+                    </div>
+                    <div class="flex gap-3">
+                        <img src="{{ ad.image_url }}" class="w-16 h-16 object-cover rounded-lg bg-gray-700"
+                            alt="Ad Creative">
+                        <div class="flex-1 min-w-0">
+                            <h4
+                                class="text-sm font-medium text-white truncate group-hover:text-purple-400 transition-colors">
+                                {{ ad.name }}</h4>
+                            <p class="text-xs text-gray-400 mt-1 line-clamp-2">{{ ad.body }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-8 text-gray-500">
+                    Nenhum anúncio encontrado para este cliente.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Analysis Column -->
+        <div class="lg:col-span-2">
+            <div class="bg-gray-800 rounded-xl border border-gray-700 p-6 mb-8 sticky top-6">
+                <h3 class="text-lg font-semibold mb-4 text-white">2. Configurar Análise</h3>
+
+                <!-- Selected Ad Preview -->
+                <div id="selectedAdPreview"
+                    class="hidden mb-6 bg-gray-900/50 rounded-lg p-4 border border-gray-700 flex gap-4 items-start">
+                    <img id="previewImage" src="" class="w-24 h-24 object-cover rounded-lg" alt="Preview">
+                    <div>
+                        <h4 id="previewTitle" class="text-white font-medium mb-1"></h4>
+                        <p id="previewBody" class="text-sm text-gray-400 line-clamp-3"></p>
+                    </div>
+                </div>
+                <div id="noSelectionMsg" class="mb-6 text-gray-500 text-sm italic">
+                    &larr; Selecione um anúncio à esquerda para começar.
+                </div>
+
+                <form id="aiForm" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Objetivo da Análise</label>
+                            <select id="objective"
+                                class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-purple-500">
+                                <option value="improve_copy">Melhorar Copy & Criativo</option>
+                                <option value="sentiment">Analisar Sentimento</option>
+                                <option value="headline">Sugerir Headlines (Títulos)</option>
+                                <option value="objections">Identificar Objeções</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button type="button" onclick="runAnalysis()" id="analyzeBtn" disabled
+                                class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 rounded-lg transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span>✨</span> Analisar Anúncio
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Result Area -->
+                <div id="resultArea" class="hidden mt-8 border-t border-gray-700 pt-6 relative">
+                    <h3 class="text-lg font-semibold mb-4 text-white flex items-center gap-2">
+                        <span>🤖</span> Resultado da IA
+                    </h3>
+                    <div id="loadingSpinner" class="hidden flex justify-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                    </div>
+                    <div id="aiOutput"
+                        class="prose prose-invert max-w-none text-gray-300 whitespace-pre-wrap bg-gray-900 rounded-lg p-4 border border-gray-700">
+                    </div>
+                </div>
+
+                <!-- Chat Section -->
+                <div id="chatSection" class="hidden mt-8 border-t border-gray-700 pt-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                            <span>💬</span> Chat com a IA
+                        </h3>
+                        <button onclick="clearChat()" class="text-sm text-gray-400 hover:text-white transition-colors">
+                            🗑️ Limpar Conversa
+                        </button>
+                    </div>
+
+                    <!-- Chat Messages Container -->
+                    <div id="chatMessages"
+                        class="space-y-4 bg-gray-900 rounded-lg p-4 max-h-96 overflow-y-auto mb-4 border border-gray-700">
+                        <p class="text-gray-500 text-center text-sm">Pergunte qualquer coisa sobre este anúncio...</p>
+                    </div>
+
+                    <!-- Chat Input -->
+                    <div class="flex gap-2">
+                        <textarea id="chatInput" placeholder="Ex: Como posso melhorar este anúncio?"
+                            onkeypress="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}"
+                            class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 resize-none"
+                            rows="2"></textarea>
+                        <button onclick="sendMessage()" id="sendBtn"
+                            class="px-6 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center">
+                            <span>📤</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    let selectedAdData = null;
+
+    function selectAdFromElement(element) {
+        // Extract data from element attributes
+        selectedAdData = {
+            id: element.dataset.adId,
+            name: element.dataset.adName,
+            title: element.dataset.adTitle,
+            body: element.dataset.adBody,
+            image_url: element.dataset.adImage
+        };
+
+        // Update UI - highlight selected card
+        document.querySelectorAll('.ad-card').forEach(card => {
+            card.classList.remove('border-purple-500', 'bg-gray-700');
+        });
+        element.classList.add('border-purple-500', 'bg-gray-700');
+
+        // Show Preview
+        document.getElementById('noSelectionMsg').classList.add('hidden');
+        const preview = document.getElementById('selectedAdPreview');
+        preview.classList.remove('hidden');
+
+        document.getElementById('previewImage').src = selectedAdData.image_url;
+        document.getElementById('previewTitle').textContent = selectedAdData.title;
+        document.getElementById('previewBody').textContent = selectedAdData.body;
+
+        // Enable Button
+        document.getElementById('analyzeBtn').disabled = false;
+    }
+
+    async function runAnalysis() {
+        if (!selectedAdData) return;
+
+        const objective = document.getElementById('objective').value;
+
+        // UI Updates
+        const resultArea = document.getElementById('resultArea');
+        const loading = document.getElementById('loadingSpinner');
+        const output = document.getElementById('aiOutput');
+
+        resultArea.classList.remove('hidden');
+        loading.classList.remove('hidden');
+        loading.classList.add('flex');
+        output.innerHTML = '';
+
+        try {
+            const response = await fetch('/api/ai-analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ad_data: selectedAdData,
+                    objective: objective
+                })
+            });
+
+            const data = await response.json();
+
+            loading.classList.add('hidden');
+            loading.classList.remove('flex');
+
+            if (data.success) {
+                // Simple markdown-like parsing for bold text
+                let formatted = data.result
+                    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
+                    .replace(/\n/g, '<br>');
+                output.innerHTML = formatted;
+
+                // Show chat section
+                document.getElementById('chatSection').classList.remove('hidden');
+            } else {
+                output.innerHTML = `<span class="text-red-400">Erro: ${data.error}</span>`;
+            }
+        } catch (e) {
+            loading.classList.add('hidden');
+            loading.classList.remove('flex');
+            output.innerHTML = `<span class="text-red-400">Erro de conexão.</span>`;
+        }
+    }
+
+    // Chat functionality
+    let chatHistory = [];
+
+    async function sendMessage() {
+        const input = document.getElementById('chatInput');
+        const message = input.value.trim();
+
+        if (!message || !selectedAdData) return;
+
+        // Add user message to UI
+        addMessageToChat('user', message);
+        input.value = '';
+
+        // Disable send button
+        const sendBtn = document.getElementById('sendBtn');
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<span>⏳</span>';
+
+        try {
+            const response = await fetch('/api/ai-chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: message,
+                    ad_context: selectedAdData,
+                    history: chatHistory
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Add AI response to UI
+                addMessageToChat('ai', data.message);
+
+                // Update history
+                chatHistory.push({ role: 'user', content: message });
+                chatHistory.push({ role: 'model', content: data.message });
+            } else {
+                addMessageToChat('error', data.error || 'Erro ao processar mensagem');
+            }
+        } catch (e) {
+            addMessageToChat('error', 'Erro de conexão');
+        }
+
+        // Re-enable send button
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<span>📤</span>';
+    }
+
+    function addMessageToChat(role, content) {
+        const chatMessages = document.getElementById('chatMessages');
+
+        // Remove placeholder if it exists
+        const placeholder = chatMessages.querySelector('p.text-gray-500');
+        if (placeholder) placeholder.remove();
+
+        const messageDiv = document.createElement('div');
+
+        if (role === 'user') {
+            messageDiv.className = 'flex justify-end';
+            messageDiv.innerHTML = `
+                <div class="bg-purple-600 text-white rounded-lg px-4 py-2 max-w-[80%]">
+                    ${escapeHtml(content)}
+                </div>
+            `;
+        } else if (role === 'ai') {
+            messageDiv.className = 'flex justify-start';
+            let formatted = content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>');
+            messageDiv.innerHTML = `
+                <div class="bg-gray-800 text-gray-200 rounded-lg px-4 py-2 max-w-[80%] border border-gray-700">
+                    <div class="text-xs text-purple-400 mb-1">🤖 IA</div>
+                    ${formatted}
+                </div>
+            `;
+        } else {
+            messageDiv.className = 'flex justify-center';
+            messageDiv.innerHTML = `
+                <div class="bg-red-900/30 text-red-400 rounded-lg px-4 py-2 text-sm border border-red-700">
+                    ${escapeHtml(content)}
+                </div>
+            `;
+        }
+
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight; // Auto scroll
+    }
+
+    function clearChat() {
+        chatHistory = [];
+        const chatMessages = document.getElementById('chatMessages');
+        chatMessages.innerHTML = '<p class="text-gray-500 text-center text-sm">Pergunte qualquer coisa sobre este anúncio...</p>';
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+</script>
+{% endblock %}
