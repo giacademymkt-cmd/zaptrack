@@ -3,6 +3,7 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, ClientConfig, Lead
 from functools import wraps
+from datetime import timedelta
 import os
 import toml
 import urllib.parse
