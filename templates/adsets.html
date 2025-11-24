@@ -23,7 +23,7 @@
             <tbody class="divide-y divide-gray-700 text-sm">
                 {% for adset in adsets %}
                 <tr class="hover:bg-gray-700/50 transition-colors group cursor-pointer"
-                    onclick="window.location='{{ url_for('ads', adset_id=adset.id) }}'">
+                    onclick="window.location='{{ url_for('ads', adset_id=adset.id, date_preset=request.args.get('date_preset', 'last_30d')) }}'">
                     <td class="px-6 py-4 font-medium text-white">{{ adset.name }}</td>
                     <td class="px-6 py-4">
                         <span

@@ -14,7 +14,7 @@ app = Flask(__name__)
 
 # Configuration - Production ready with environment variables
 app.secret_key = os.environ.get('SECRET_KEY', 'super_secret_key_for_session')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///instance/agencyos.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///agencyos.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Load Gemini API Key from environment or secrets file
@@ -474,11 +474,17 @@ def ads(adset_id):
     if not conf:
         return redirect(url_for('dashboard'))
     
-    # Use service to fetch all ads with insights
+    # Get date preset from query params (default to last_30d to match dashboard default)
+    date_preset = request.args.get('date_preset', 'last_30d')
+    
+    # Use service to fetch ads for this specific adset with date filtering
     from facebook_service import get_client_ads_with_creatives
-    all_ads = get_client_ads_with_creatives(conf.fb_access_token, conf.ad_account_id)
-    # Filter ads belonging to the requested adset
-    ads_data = [ad for ad in all_ads if ad.get('adset_id') == adset_id]
+    ads_data = get_client_ads_with_creatives(
+        conf.fb_access_token, 
+        conf.ad_account_id, 
+        adset_id=adset_id,
+        date_preset=date_preset
+    )
 
 
     

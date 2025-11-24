@@ -17,7 +17,7 @@
             <tbody class="divide-y divide-gray-700 text-sm">
                 {% for campaign in campaigns %}
                 <tr class="hover:bg-gray-700/50 transition-colors group cursor-pointer"
-                    onclick="window.location='{{ url_for('adsets', campaign_id=campaign.id) }}'">
+                    onclick="window.location='{{ url_for('adsets', campaign_id=campaign.id, date_preset=request.args.get('date_preset', 'last_30d')) }}'">
                     <td class="px-6 py-4 font-medium text-white">{{ campaign.name }}</td>
                     <td class="px-6 py-4">
                         <span

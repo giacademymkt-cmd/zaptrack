@@ -167,11 +167,11 @@ def get_ad_insights(access_token, ad_ids):
     # Better approach: fetch insights at ad_account level with level='ad' and limit.
     pass 
 
-def get_client_ads_with_creatives(access_token, ad_account_id, adset_id=None):
+def get_client_ads_with_creatives(access_token, ad_account_id, adset_id=None, date_preset='maximum', time_range=None):
     """Fetches ads with creative details AND insights.
     If adset_id is provided, filters ads to that adset.
     """
-    cache_key = f"ads_with_insights_{ad_account_id}_{adset_id}" if adset_id else f"ads_with_insights_{ad_account_id}"
+    cache_key = f"ads_with_insights_{ad_account_id}_{adset_id}_{date_preset}_{time_range}"
     cached = _get_from_cache(cache_key)
     if cached is not None:
         return cached
@@ -183,7 +183,7 @@ def get_client_ads_with_creatives(access_token, ad_account_id, adset_id=None):
     url = f"{BASE_URL}/{ad_account_id}/ads"
     params = {
         'access_token': access_token,
-        'fields': 'name,status,adset_id,creative{name,image_url,thumbnail_url,body,title,object_story_spec}',
+        'fields': 'name,status,adset_id,creative{name,image_url,thumbnail_url,body,title}',
         'limit': 200  # Increase limit to fetch more ads
         # No filtering to include all ads for accurate spend and metrics
     }
@@ -213,10 +213,13 @@ def get_client_ads_with_creatives(access_token, ad_account_id, adset_id=None):
                     'access_token': access_token,
                     'level': 'ad',
                     'fields': 'ad_id,spend,impressions,clicks,cpc,ctr,actions',
-                    'date_preset': 'maximum',
+                    'date_preset': date_preset,
                     'limit': 500,
                     'filtering': json.dumps([{'field':'ad.id','operator':'IN','value':chunk}])
                 }
+                if time_range:
+                    insights_params['time_range'] = json.dumps(time_range)
+                    insights_params.pop('date_preset', None)
                 try:
                     insights_resp = requests.get(insights_url, params=insights_params)
                     if insights_resp.status_code == 200:
@@ -231,10 +234,7 @@ def get_client_ads_with_creatives(access_token, ad_account_id, adset_id=None):
             image_url = creative.get('image_url') or creative.get('thumbnail_url')
             
             if not image_url and 'object_story_spec' in creative:
-                try:
-                    image_url = creative['object_story_spec']['link_data']['picture']
-                except:
-                    pass
+                pass # Field removed to avoid 500 error
             
             # Merge Insights
             insight = insights_data.get(ad['id'], {})
