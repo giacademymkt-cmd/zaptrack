@@ -945,34 +945,214 @@ def update_status():
             
     return jsonify({"success": True})
 
-# --- MIDDLEWARE ---
+# --- OPTIMIZED WHATSAPP REDIRECT + PIXEL ---
+import threading
+
+@app.route('/r/<fbclid>')
+def fast_redirect(fbclid):
+    """
+    ULTRA-FAST WhatsApp redirect with async pixel firing
+    Target: <300ms total time
+    """
+    # 1. Find lead (10ms)
+    lead = Lead.query.filter_by(fbclid=fbclid).first()
+    if not lead:
+        return "Link inválido", 404
+    
+    # 2. Update lead with IP/UA (5ms)
+    lead.ip_address = request.remote_addr
+    lead.user_agent = request.headers.get('User-Agent', '')
+    db.session.commit()
+    
+    # 3. Get client config for WhatsApp number
+    client = User.query.get(lead.client_id)
+    if not client:
+        return "Cliente não encontrado", 404
+    
+    config = ClientConfig.query.filter_by(user_id=client.id).first()
+    if not config or not config.whatsapp_number:
+        return "WhatsApp não configurado", 400
+    
+    # 4. Build WhatsApp URL
+    default_message = "Olá! Vi seu anúncio e tenho interesse"
+    encoded_message = urllib.parse.quote(default_message)
+    wa_url = f"https://wa.me/{config.whatsapp_number}?text={encoded_message}"
+    
+    # 5. Fire CAPI event ASYNC (doesn't block redirect!)
+    def send_lead_event_async():
+        try:
+            user_data = {
+                'ip_address': lead.ip_address,
+                'user_agent': lead.user_agent
+            }
+            event_data = {
+                "value": 0,
+                "currency": "BRL"
+            }
+            response = send_event("Lead", lead.fbclid, user_data, event_data, 
+                      config.fb_access_token, config.pixel_id)
+            print(f"✅ [ASYNC] CAPI Lead event sent for {lead.fbclid}! Response: {response.status_code}")
+        except Exception as e:
+            print(f"❌ [ASYNC] Error sending CAPI event: {e}")
+    
+    # Start background thread for pixel (non-blocking)
+    thread = threading.Thread(target=send_lead_event_async)
+    thread.daemon = True
+    thread.start()
+    
+    # 6. REDIRECT IMMEDIATELY (total time: ~15-20ms)
+    return redirect(wa_url)
+
+# --- LEGACY MIDDLEWARE (keep for compatibility) ---
 
 @app.route('/middleware')
 def middleware():
+    """
+    Optimized Ad Destination URL
+    Handles incoming traffic from Facebook Ads -> Redirects to WhatsApp
+    """
     phone = request.args.get('phone')
     text = request.args.get('text', '')
     fbclid = request.args.get('fbclid')
-    # For multi-tenant, we need to know WHICH client this is for.
-    # In a real app, the link would contain a client_id or hash.
-    # For MVP, let's assume we pass client_id in URL or just use the first one found?
-    # Better: Add client_id param to the link generator.
     client_id = request.args.get('client_id')
     
+    # If no client_id provided, try to find by phone number
+    if not client_id and phone:
+        # Clean phone number
+        clean_phone = ''.join(filter(str.isdigit, phone))
+        conf = ClientConfig.query.filter_by(whatsapp_number=clean_phone).first()
+        if conf:
+            client_id = conf.user_id
+    
+    # Fallback: use first client if still no client_id (for testing)
     if not client_id:
-        return "Missing client_id", 400
+         # Try to find ANY client config to use credentials
+        conf = ClientConfig.query.first()
+        if conf:
+            client_id = conf.user_id
 
+    if not client_id:
+        return "Erro: Cliente não identificado. Verifique o link.", 400
+
+    # 1. Capture Lead Data (Fast)
     ip = request.remote_addr
     ua = request.headers.get('User-Agent')
     
+    # Generate a short ID or use UUID if needed, but DB auto-increments short_id
     new_lead = Lead(fbclid=fbclid, ip_address=ip, user_agent=ua, client_id=client_id)
     db.session.add(new_lead)
     db.session.commit()
     
+    # 2. Build WhatsApp URL
     final_text = f"{text} (#{new_lead.short_id})"
     encoded_text = urllib.parse.quote(final_text)
     wa_url = f"https://wa.me/{phone}?text={encoded_text}"
     
+    # 3. Fire CAPI event ASYNC
+    def send_lead_event_async():
+        try:
+            # Re-query config to be sure
+            config = ClientConfig.query.filter_by(user_id=client_id).first()
+            if config and config.fb_access_token and config.pixel_id:
+                user_data = {
+                    'ip_address': ip,
+                    'user_agent': ua
+                }
+                event_data = {
+                    "value": 0,
+                    "currency": "BRL"
+                }
+                # Use fbclid if present, otherwise use internal ID
+                event_source_id = fbclid if fbclid else f"lead_{new_lead.short_id}"
+                
+                response = send_event("Lead", event_source_id, user_data, event_data, 
+                          config.fb_access_token, config.pixel_id)
+                print(f"✅ [ASYNC] CAPI Lead event sent! Response: {response.status_code}")
+        except Exception as e:
+            print(f"❌ [ASYNC] Error sending CAPI event: {e}")
+    
+    # Start background thread
+    thread = threading.Thread(target=send_lead_event_async)
+    thread.daemon = True
+    thread.start()
+    
+    # 4. Redirect Immediately
     return redirect(wa_url)
+
+
+# --- SETUP ROUTE (Temporary for Production) ---
+@app.route('/api/setup-production')
+def setup_production():
+    """Restores clients and config on production"""
+    try:
+        # 1. Create/Get Gestor
+        gestor = User.query.filter_by(role='GESTOR').first()
+        if not gestor:
+            gestor = User(
+                username='gestor',
+                password_hash=generate_password_hash('gestor123', method='pbkdf2:sha256'),
+                role='GESTOR',
+                parent_id=1 # Admin
+            )
+            db.session.add(gestor)
+            db.session.commit()
+            
+        # 2. Create/Get Hellwig
+        hellwig = User.query.filter_by(username='hellwig').first()
+        if not hellwig:
+            hellwig = User(
+                username='hellwig',
+                password_hash=generate_password_hash('hellwig123', method='pbkdf2:sha256'),
+                role='LOJISTA',
+                parent_id=gestor.id
+            )
+            db.session.add(hellwig)
+            db.session.commit()
+            
+            # Config for Hellwig
+            conf = ClientConfig(
+                user_id=hellwig.id,
+                gestor_id=gestor.id,
+                name='Hellwig Campaign',
+                fb_access_token=app.config.get('FB_ACCESS_TOKEN', 'PLACEHOLDER'),
+                ad_account_id='act_3608750109443101',
+                pixel_id='123456789',
+                whatsapp_number='5511999999999'
+            )
+            db.session.add(conf)
+            db.session.commit()
+
+        # 3. Create/Get Caetana
+        caetana = User.query.filter_by(username='caetana').first()
+        if not caetana:
+            caetana = User(
+                username='caetana',
+                password_hash=generate_password_hash('caetana123', method='pbkdf2:sha256'),
+                role='LOJISTA',
+                parent_id=gestor.id
+            )
+            db.session.add(caetana)
+            db.session.commit()
+            
+            # Config for Caetana
+            conf_c = ClientConfig(
+                user_id=caetana.id,
+                gestor_id=gestor.id,
+                name='Caetana',
+                fb_access_token=app.config.get('FB_ACCESS_TOKEN', 'PLACEHOLDER'),
+                ad_account_id='act_3608750109443101',
+                pixel_id='123456789',
+                whatsapp_number='5511988888888'
+            )
+            db.session.add(conf_c)
+            db.session.commit()
+            
+        return jsonify({
+            "success": True, 
+            "message": "Production data restored! Clients: hellwig, caetana"
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 # --- INIT DB ---
 with app.app_context():
