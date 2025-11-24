@@ -17,6 +17,13 @@ app.secret_key = os.environ.get('SECRET_KEY', 'super_secret_key_for_session')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///agencyos.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Session Configuration - Keep users logged in
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)  # Session lasts 30 days
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent XSS attacks
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)  # Remember me duration
+
 # Load Gemini API Key from environment or secrets file
 gemini_key = os.environ.get('GEMINI_API_KEY')
 if not gemini_key:
@@ -86,12 +93,16 @@ def login():
         user = User.query.filter_by(username=username).first()
         
         if user and check_password_hash(user.password_hash, password):
-            login_user(user)
+            # Mark session as permanent (lasts 30 days)
+            session.permanent = True
+            # Login with remember me enabled
+            login_user(user, remember=True)
+            
             if user.role == 'MASTER':
                 return redirect(url_for('users_list'))
             elif user.role == 'GESTOR':
                 return redirect(url_for('dashboard'))
-            elif user.role == 'LOJISTA':
+            else:  # LOJISTA
                 return redirect(url_for('client_app_home'))
         else:
             flash("Usuário ou senha inválidos.", "error")
@@ -524,7 +535,15 @@ def ai_lab():
         conf = ClientConfig.query.filter_by(user_id=active_client.id).first()
         if conf and conf.fb_access_token and conf.ad_account_id:
             from facebook_service import get_client_ads_with_creatives
-            ads = get_client_ads_with_creatives(conf.fb_access_token, conf.ad_account_id)
+            # Fetch only recent active ads (last 30 days)
+            ads = get_client_ads_with_creatives(
+                conf.fb_access_token, 
+                conf.ad_account_id,
+                date_preset='last_30d'  # Only active recent ads
+            )
+            # Filter to only show ads with impressions > 0 (truly active)
+            ads = [ad for ad in ads if ad.get('impressions', 0) > 0]
+    
     
     return render_template('ai_lab.html', clients=clients, active_client=active_client, ads=ads)
 
